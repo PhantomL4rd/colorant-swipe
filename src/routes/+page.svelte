@@ -107,9 +107,15 @@ function commitPick(side: 'left' | 'right') {
 
 function finish() {
   const scores = scoreDyes(dyes, wins, losses, pref);
-  result = diversify(dyes, scores, RESULT_COUNT, undefined, [
-    { test: (d) => !!d.tags?.includes('metallic'), max: 2 },
-  ]);
+  // 出題で見た色は結果から除外 → 「こんな色もあったのね」を最大化
+  result = diversify(
+    dyes,
+    scores,
+    RESULT_COUNT,
+    undefined,
+    [{ test: (d) => !!d.tags?.includes('metallic'), max: 2 }],
+    seen
+  );
   phase = 'result';
 }
 

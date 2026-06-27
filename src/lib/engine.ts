@@ -156,9 +156,12 @@ export function diversify(
   scores: Map<string, number>,
   k = RESULT_COUNT,
   minDist = DIVERSIFY_MIN_DIST,
-  caps: DiversifyCap[] = []
+  caps: DiversifyCap[] = [],
+  excludeIds: Set<string> = new Set()
 ): Dye[] {
-  const sorted = [...allDyes].sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
+  const sorted = [...allDyes]
+    .filter((d) => !excludeIds.has(d.id))
+    .sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
   const picked: Dye[] = [];
   const counts = caps.map(() => 0);
   const exceedsCap = (d: Dye) => caps.some((c, i) => c.test(d) && counts[i] >= c.max);

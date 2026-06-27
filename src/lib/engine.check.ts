@@ -57,6 +57,14 @@ const hasBothNear = picked.some((d) => d.id === 'r1') && picked.some((d) => d.id
 assert.ok(!hasBothNear, 'should not pick both near-duplicate reds');
 assert.equal(picked.length, 4);
 
+// diversify: excludeIds に指定された色は結果に出ない
+const excludeReds = new Set(['r1', 'r2', 'red']);
+const pickedNoRed = diversify(close, fakeScores, 4, 0.05, [], excludeReds);
+assert.ok(
+  pickedNoRed.every((d) => !excludeReds.has(d.id)),
+  'excludeIds must keep listed dyes out of the result'
+);
+
 // pickNextPair: 2色以上残っていればちゃんとペアを返す & seen を尊重
 const seen = new Set<string>(['red', 'green']);
 const [a, b] = pickNextPair(dyes, emptyPref(), seen);
