@@ -193,7 +193,7 @@ function onPointerUp() {
       </div>
 
       {#key questionNo}
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 animate-card-in">
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 animate-card-in">
           {#each [{ side: 'left' as const, dye: left }, { side: 'right' as const, dye: right }] as item (item.side + item.dye.id)}
             <button
               type="button"
@@ -207,6 +207,8 @@ function onPointerUp() {
               class:is-dragging={dragging === item.side}
               class:winner={exiting === item.side}
               class:loser={exiting && exiting !== item.side}
+              class:hint-swipe-left={questionNo === 1 && item.side === 'left'}
+              class:hint-swipe-right={questionNo === 1 && item.side === 'right'}
               style="background-color: {item.dye.hex}; --drag-x: {dragging === item.side ? dragX : 0}px; --drag-rot: {dragging === item.side ? dragX / 24 : 0}deg; --exit-x: {item.side === 'left' ? '-130%' : '130%'};"
               aria-label={item.side === 'left' ? $t('common.aria.pickLeft') : $t('common.aria.pickRight')}
             ></button>

@@ -378,6 +378,24 @@
   }
 }
 
+/* 1問目：左右のカードが順番にそれぞれの方向に揺れる */
+@keyframes hint-swipe-left {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  40% { transform: translateX(-60px) rotate(-6deg); }
+  70% { transform: translateX(0) rotate(0); }
+}
+@keyframes hint-swipe-right {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  40% { transform: translateX(60px) rotate(6deg); }
+  70% { transform: translateX(0) rotate(0); }
+}
+.swipe-card.hint-swipe-left {
+  animation: hint-swipe-left 1.4s ease-in-out 0.5s 1;
+}
+.swipe-card.hint-swipe-right {
+  animation: hint-swipe-right 1.4s ease-in-out 1.7s 1;
+}
+
 @keyframes card-in {
   from {
     opacity: 0;
