@@ -1,0 +1,405 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-heart: var(--heart);
+  --color-liked: var(--liked);
+  --color-tip: var(--tip);
+  --color-banner: var(--banner);
+  --color-notice: var(--notice);
+  --color-notice-foreground: var(--notice-foreground);
+  --color-popular: var(--popular);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Catppuccin Latte (monochrome neutrals only) */
+:root {
+  --ctp-base: oklch(0.959 0.007 286);
+  --ctp-mantle: oklch(0.931 0.008 286);
+  --ctp-crust: oklch(0.897 0.010 286);
+  --ctp-surface0: oklch(0.915 0.009 286);
+  --ctp-surface1: oklch(0.864 0.012 286);
+  --ctp-surface2: oklch(0.806 0.014 286);
+  --ctp-overlay0: oklch(0.743 0.017 286);
+  --ctp-overlay1: oklch(0.679 0.019 286);
+  --ctp-overlay2: oklch(0.616 0.022 286);
+  --ctp-subtext0: oklch(0.553 0.024 286);
+  --ctp-subtext1: oklch(0.490 0.025 286);
+  --ctp-text: oklch(0.428 0.025 286);
+  /* Catppuccin Latte Accents — Tailwindの素の色名を置き換える用途のみ */
+  --ctp-red: oklch(0.553 0.214 22); /* #d20f39 */
+  --ctp-green: oklch(0.617 0.171 142); /* #40a02b */
+  --ctp-blue: oklch(0.546 0.214 263); /* #1e66f5 */
+  --ctp-sky: oklch(0.668 0.135 233); /* #04a5e5 */
+  --ctp-yellow: oklch(0.706 0.137 71); /* #df8e1d */
+  --ctp-pink: oklch(0.731 0.166 348); /* #ea76cb */
+
+  --heart: var(--ctp-red);
+  --liked: var(--ctp-green);
+  --tip: var(--ctp-blue);
+  --banner: var(--ctp-sky);
+  --notice: var(--ctp-pink);
+  --notice-foreground: var(--ctp-base);
+  --popular: var(--ctp-yellow);
+  --background: var(--ctp-base);
+  --foreground: var(--ctp-text);
+  --card: var(--ctp-mantle);
+  --card-foreground: var(--ctp-text);
+  --popover: var(--ctp-mantle);
+  --popover-foreground: var(--ctp-text);
+  --primary: var(--ctp-subtext1);
+  --primary-foreground: var(--ctp-base);
+  --secondary: var(--ctp-surface0);
+  --secondary-foreground: var(--ctp-text);
+  --muted: var(--ctp-surface0);
+  --muted-foreground: var(--ctp-subtext0);
+  --accent: var(--ctp-surface1);
+  --accent-foreground: var(--ctp-text);
+  --destructive: var(--ctp-text);
+  --destructive-foreground: var(--ctp-base);
+  --border: var(--ctp-surface1);
+  --input: var(--ctp-surface0);
+  --ring: var(--ctp-overlay0);
+  --radius: 0.625rem;
+  --sidebar: var(--ctp-mantle);
+  --sidebar-foreground: var(--ctp-text);
+  --sidebar-primary: var(--ctp-text);
+  --sidebar-primary-foreground: var(--ctp-base);
+  --sidebar-accent: var(--ctp-surface0);
+  --sidebar-accent-foreground: var(--ctp-text);
+  --sidebar-border: var(--ctp-surface1);
+  --sidebar-ring: var(--ctp-overlay0);
+}
+
+/* Catppuccin Macchiato (monochrome neutrals only) */
+.dark {
+  --ctp-base: oklch(0.252 0.034 285);
+  --ctp-mantle: oklch(0.219 0.030 285);
+  --ctp-crust: oklch(0.180 0.025 286);
+  --ctp-surface0: oklch(0.323 0.031 285);
+  --ctp-surface1: oklch(0.391 0.030 285);
+  --ctp-surface2: oklch(0.460 0.030 285);
+  --ctp-overlay0: oklch(0.527 0.030 283);
+  --ctp-overlay1: oklch(0.594 0.029 281);
+  --ctp-overlay2: oklch(0.665 0.030 280);
+  --ctp-subtext0: oklch(0.730 0.030 278);
+  --ctp-subtext1: oklch(0.798 0.032 274);
+  --ctp-text: oklch(0.866 0.036 272);
+  /* Catppuccin Macchiato Accents — Tailwindの素の色名を置き換える用途のみ */
+  --ctp-red: oklch(0.737 0.131 12); /* #ed8796 */
+  --ctp-green: oklch(0.834 0.122 144); /* #a6da95 */
+  --ctp-blue: oklch(0.727 0.117 251); /* #8aadf4 */
+  --ctp-sky: oklch(0.832 0.075 217); /* #91d7e3 */
+  --ctp-yellow: oklch(0.875 0.067 87); /* #eed49f */
+  --ctp-pink: oklch(0.853 0.083 339); /* #f5bde6 */
+
+  --heart: var(--ctp-red);
+  --liked: var(--ctp-green);
+  --tip: var(--ctp-blue);
+  --banner: var(--ctp-sky);
+  --notice: var(--ctp-pink);
+  --notice-foreground: var(--ctp-base);
+  --popular: var(--ctp-yellow);
+  --background: var(--ctp-base);
+  --foreground: var(--ctp-text);
+  --card: var(--ctp-mantle);
+  --card-foreground: var(--ctp-text);
+  --popover: var(--ctp-mantle);
+  --popover-foreground: var(--ctp-text);
+  --primary: var(--ctp-subtext1);
+  --primary-foreground: var(--ctp-base);
+  --secondary: var(--ctp-surface0);
+  --secondary-foreground: var(--ctp-text);
+  --muted: var(--ctp-surface0);
+  --muted-foreground: var(--ctp-subtext0);
+  --accent: var(--ctp-surface1);
+  --accent-foreground: var(--ctp-text);
+  --destructive: var(--ctp-text);
+  --destructive-foreground: var(--ctp-base);
+  --border: var(--ctp-surface1);
+  --input: var(--ctp-surface0);
+  --ring: var(--ctp-overlay0);
+  --sidebar: var(--ctp-mantle);
+  --sidebar-foreground: var(--ctp-text);
+  --sidebar-primary: var(--ctp-text);
+  --sidebar-primary-foreground: var(--ctp-base);
+  --sidebar-accent: var(--ctp-surface0);
+  --sidebar-accent-foreground: var(--ctp-text);
+  --sidebar-border: var(--ctp-surface1);
+  --sidebar-ring: var(--ctp-overlay0);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* スクロールバー非表示ユーティリティ */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===== UX Psychology Animations ===== */
+
+/* バウンスアニメーション（クリック時） */
+@keyframes bounce-subtle {
+  0%, 100% { transform: scale(1); }
+  40% { transform: scale(0.95); }
+  60% { transform: scale(1.03); }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 0.2s ease-out;
+}
+
+/* フェードイン + 上昇アニメーション（段階的表示用） */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.2s ease-out forwards;
+}
+
+/* パルスリングアニメーション（選択状態） */
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--foreground) 40%, transparent); }
+  70% { box-shadow: 0 0 0 6px color-mix(in oklch, var(--foreground) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--foreground) 0%, transparent); }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+/* ハートバウンス（お気に入り追加時） */
+@keyframes heart-bounce {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.4); }
+  30% { transform: scale(0.85); }
+  45% { transform: scale(1.2); }
+  60% { transform: scale(0.95); }
+  75% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.animate-heart-bounce {
+  animation: heart-bounce 0.6s ease-out;
+}
+
+/* ハートポップ（スキ！追加時の強調） */
+@keyframes heart-pop {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  20% {
+    transform: scale(1.5);
+    filter: brightness(1.2);
+  }
+  40% {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.3);
+  }
+  80% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+.animate-heart-pop {
+  animation: heart-pop 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* ハートフリップ（縦軸回転 + バウンド） */
+@keyframes heart-flip {
+  0% {
+    transform: perspective(400px) rotateY(0deg) scale(1);
+  }
+  30% {
+    transform: perspective(400px) rotateY(180deg) scale(1.3);
+  }
+  60% {
+    transform: perspective(400px) rotateY(360deg) scale(0.9);
+  }
+  80% {
+    transform: perspective(400px) rotateY(360deg) scale(1.1);
+  }
+  100% {
+    transform: perspective(400px) rotateY(360deg) scale(1);
+  }
+}
+
+.animate-heart-flip {
+  animation: heart-flip 0.8s ease-out;
+}
+
+/* ハートバースト（スキ！時に小ハートが弾ける） */
+@keyframes heart-burst {
+  0% {
+    opacity: 1;
+    transform: translate(var(--burst-x, 0), 0) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(var(--burst-x, 0), calc(var(--burst-y, -25px) * 0.25)) scale(1.1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate(var(--burst-x, 0), calc(var(--burst-y, -25px) * 0.6)) scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--burst-x, 0), var(--burst-y, -35px)) scale(0.6);
+  }
+}
+
+.animate-heart-burst {
+  animation: heart-burst 0.55s ease-out forwards;
+  pointer-events: none;
+}
+
+/* ゆっくりパルス（空状態のアイコン用） */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+/* スライドイン（トースト用） */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.2s ease-out forwards;
+}
+
+/* ===== Swipe Card ===== */
+
+.swipe-card {
+  aspect-ratio: 4 / 3;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 25px -10px color-mix(in oklch, var(--foreground) 25%, transparent);
+  touch-action: none;
+  cursor: pointer;
+  transform: translateX(var(--drag-x, 0)) rotate(var(--drag-rot, 0));
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 240ms ease-out,
+    box-shadow 200ms ease-out;
+}
+.swipe-card:not(:disabled):hover {
+  transform: translateX(var(--drag-x, 0)) rotate(var(--drag-rot, 0)) scale(1.02);
+}
+.swipe-card.is-dragging {
+  transition: none;
+  cursor: grabbing;
+}
+.swipe-card.winner {
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 4px color-mix(in oklch, var(--foreground) 35%, transparent),
+    0 18px 35px -10px color-mix(in oklch, var(--foreground) 40%, transparent);
+}
+.swipe-card.loser {
+  transform: translateX(var(--exit-x)) rotate(calc(var(--exit-x) / 12)) scale(0.85);
+  opacity: 0;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-card-in {
+  animation: card-in 0.24s ease-out;
+}
+
+/* ===== Reduced Motion Support ===== */
+@media (prefers-reduced-motion: reduce) {
+  .animate-bounce-subtle,
+  .animate-fade-in-up,
+  .animate-pulse-ring,
+  .animate-heart-bounce,
+  .animate-heart-pop,
+  .animate-heart-flip,
+  .animate-heart-burst,
+  .animate-pulse-slow,
+  .animate-slide-in-right,
+  .animate-card-in,
+  .swipe-card,
+  .swipe-card.winner,
+  .swipe-card.loser {
+    animation: none;
+    transition: none;
+  }
+}

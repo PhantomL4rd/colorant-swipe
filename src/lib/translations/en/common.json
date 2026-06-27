@@ -1,0 +1,70 @@
+{
+  "app": {
+    "name": "Colorant Swipe",
+    "description": "Swipe through FF14 colorants and discover your favorites"
+  },
+  "intro": {
+    "tagline": "Find your dye.",
+    "lead": "Pick the color you like {count} times.",
+    "leadSuffix": "We will recommend {count} colors for you.",
+    "start": "Start swiping"
+  },
+  "swipe": {
+    "prompt": "Which one do you like?",
+    "keyHint": "Use ← → keys too"
+  },
+  "result": {
+    "title": "{count} colors for you",
+    "subtitle": "Picked from {count} swipes",
+    "retry": "Try again",
+    "share": "Share"
+  },
+  "share": {
+    "text": "Find your dye. #ColorantSwipe"
+  },
+  "aria": {
+    "languageSwitch": "Switch language",
+    "pickLeft": "Pick the left color",
+    "pickRight": "Pick the right color",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "nav": {
+    "menu": "Menu",
+    "about": "About this site",
+    "links": "External links"
+  },
+  "externalLinks": {
+    "colorantPicker": "Dye Harmony",
+    "mirapriInsight": "Mirapri Insight",
+    "fourSeasons": "4seasons"
+  },
+  "state": {
+    "loading": "Loading..."
+  },
+  "about": {
+    "title": "About Colorant Swipe",
+    "p1": "Colorant Swipe is a service for discovering FFXIV (FF14) dyes (colorants) you might like by picking between two colors at a time. From your choices it infers your preference using math in the OKLab color space and suggests 6 colors for you.",
+    "p2": "No color theory knowledge required — just keep tapping the one you like. It's not a diagnosis, it's a chance to meet colors you wouldn't have picked yourself. Each result links to Dye Harmony so you can try real palettes built from that dye.",
+    "usage": {
+      "title": "How to Use",
+      "step1": "Tap \"Start swiping\".",
+      "step2": "Pick the color you prefer from the two on screen (5 rounds). Swipe, tap, or use the ← → keys.",
+      "step3": "When you're done, 6 recommended colors appear as tiles.",
+      "step4": "Tap any color to open it in Dye Harmony and explore palettes built around it."
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": "Is it free?",
+      "a1": "Yes, it's completely free with no account required.",
+      "q2": "Does it use AI?",
+      "a2": "No. It uses only OKLab color-space math: farthest-point sampling, preference vectors, Gaussian score propagation, and diversity constraints. Explainable and stable.",
+      "q3": "Why only 5 questions?",
+      "a3": "Pairwise comparisons carry a lot of information per answer, and combined with adaptive question selection, 5 is enough for usable accuracy. The short session is meant to be played many times.",
+      "q4": "Why do results differ even when my preferences stay the same?",
+      "a4": "Question pairs are sampled randomly from a representative pool, so each session probes your taste from slightly different angles. Results vary a bit too — that's part of the discovery.",
+      "q5": "Is this an official Square Enix tool?",
+      "a5": "No, this is an unofficial tool individually developed by a player, not affiliated with Square Enix."
+    }
+  }
+}
