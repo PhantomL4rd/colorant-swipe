@@ -370,6 +370,14 @@
   opacity: 0;
 }
 
+/* SP: 縦積みで各カードを画面いっぱいに */
+@media (max-width: 640px) {
+  .swipe-card {
+    aspect-ratio: auto;
+    height: clamp(180px, 36dvh, 320px);
+  }
+}
+
 @keyframes card-in {
   from {
     opacity: 0;

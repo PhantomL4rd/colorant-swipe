@@ -142,8 +142,9 @@ function onPointerMove(e: PointerEvent) {
 }
 function onPointerUp() {
   if (!dragging) return;
-  const inward = dragging === 'left' ? dragX > COMMIT_PX : dragX < -COMMIT_PX;
-  if (inward) pick(dragging);
+  // 右スワイプ = この色を選ぶ / 左スワイプ = この色は却下＝もう片方を選ぶ (Tinder convention)
+  if (dragX > COMMIT_PX) pick(dragging);
+  else if (dragX < -COMMIT_PX) pick(dragging === 'left' ? 'right' : 'left');
   dragX = 0;
   dragging = null;
 }
@@ -192,7 +193,7 @@ function onPointerUp() {
       </div>
 
       {#key questionNo}
-        <div class="grid grid-cols-2 gap-4 animate-card-in">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 animate-card-in">
           {#each [{ side: 'left' as const, dye: left }, { side: 'right' as const, dye: right }] as item (item.side + item.dye.id)}
             <button
               type="button"
