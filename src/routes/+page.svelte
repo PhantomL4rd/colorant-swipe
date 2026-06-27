@@ -211,7 +211,9 @@ function onPointerUp() {
               style="background-color: {item.dye.hex}; --drag-x: {dragging === item.side ? dragX : 0}px; --drag-rot: {dragging === item.side ? dragX / 24 : 0}deg; --exit-x: {item.side === 'left' ? '-130%' : '130%'};"
               aria-label={item.side === 'left' ? $t('common.aria.pickLeft') : $t('common.aria.pickRight')}
             >
-              <span class="heart-pop" aria-hidden="true">💕</span>
+              <span class="heart-pop" aria-hidden="true">
+                <Heart class="heart-pop-icon" />
+              </span>
             </button>
           {/each}
         </div>
