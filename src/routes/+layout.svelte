@@ -20,7 +20,7 @@ const { children } = $props();
   <header class="bg-primary text-primary-foreground mb-8">
     <div class="container mx-auto flex items-center h-14 px-4">
       <h1 class="flex-1 text-xl font-bold">
-        <a href={resolve('/')} class="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
+        <a href={resolve('/')} data-sveltekit-reload class="inline-flex items-center gap-2 hover:opacity-80 transition-opacity">
           <ArrowLeftRight class="size-6" />
           {$t('common.app.name')}
         </a>

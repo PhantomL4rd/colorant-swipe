@@ -142,9 +142,8 @@ function onPointerMove(e: PointerEvent) {
 }
 function onPointerUp() {
   if (!dragging) return;
-  // 右スワイプ = この色を選ぶ / 左スワイプ = この色は却下＝もう片方を選ぶ (Tinder convention)
-  if (dragX > COMMIT_PX) pick(dragging);
-  else if (dragX < -COMMIT_PX) pick(dragging === 'left' ? 'right' : 'left');
+  // 掴んだカードをどっち方向に投げてもそのカードを選ぶ
+  if (Math.abs(dragX) > COMMIT_PX) pick(dragging);
   dragX = 0;
   dragging = null;
 }
@@ -216,7 +215,7 @@ function onPointerUp() {
         </div>
       {/key}
 
-      <div class="flex items-center justify-center gap-3 text-sm text-muted-foreground">
+      <div class="hidden sm:flex items-center justify-center gap-3 text-sm text-muted-foreground">
         <button
           type="button"
           onclick={() => pick('left')}
