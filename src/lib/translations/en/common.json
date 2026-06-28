@@ -32,7 +32,7 @@
     }
   },
   "share": {
-    "text": "I'm a \"{persona}\"! Find your dye.\n#ColorantSwipe #FF14 #FFXIV"
+    "text": "I'm a \"{persona}\"! Find your dye.\n#ColorantSwipe #FF14 #FFXIV\n{url}"
   },
   "aria": {
     "languageSwitch": "Switch language",

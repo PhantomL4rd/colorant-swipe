@@ -32,7 +32,7 @@
     }
   },
   "share": {
-    "text": "わたしは「{persona}」でした！\n推しカララント、見つけよう。\n#カララントスワイプ #FF14 #FFXIV"
+    "text": "わたしは「{persona}」でした！\n推しカララント、見つけよう。\n#カララントスワイプ #FF14 #FFXIV\n{url}"
   },
   "aria": {
     "languageSwitch": "言語を切り替え",
