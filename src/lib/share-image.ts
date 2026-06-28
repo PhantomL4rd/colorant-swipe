@@ -101,7 +101,9 @@ export async function shareResult(
   };
   if (nav.canShare?.({ files: [file] })) {
     try {
-      await nav.share({ files: [file], url, text });
+      const data: ShareData = { files: [file], text };
+      if (url) data.url = url;
+      await nav.share(data);
       return;
     } catch (e) {
       if ((e as DOMException)?.name === 'AbortError') return;

@@ -133,9 +133,12 @@ async function share() {
   sharing = true;
   try {
     const personaName = $t(`common.result.persona.${persona}`);
-    const text = $t('common.share.text').replace('{persona}', personaName);
+    const text = $t('common.share.text')
+      .replace('{persona}', personaName)
+      .replace('{url}', SITE_URL);
     const personaText = $t('common.result.personaShare').replace('{persona}', personaName);
-    await shareResult(result, SITE_URL, text, personaText);
+    // X は url フィールドを無視するため text に URL 必須。url フィールドは渡さない（重複防止）
+    await shareResult(result, '', text, personaText);
   } catch (e) {
     console.error(e);
   } finally {
