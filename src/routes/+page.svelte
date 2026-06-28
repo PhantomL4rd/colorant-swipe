@@ -13,12 +13,14 @@ import { dyeStore, loadDyes } from '$lib/dyes';
 import {
   diversify,
   emptyPref,
+  type Persona,
   type Pref,
   pickNextPair,
   QUESTION_COUNT,
   RESULT_COUNT,
   scoreDyes,
   selectRepresentatives,
+  summarizePref,
   updatePref,
 } from '$lib/engine';
 import { shareResult } from '$lib/share-image';
@@ -26,6 +28,7 @@ import { t } from '$lib/translations';
 import type { Dye } from '$lib/types';
 
 const PICKER_URL = 'https://colorant-picker.pl4rd.com/';
+const SITE_URL = 'https://colorant-swipe.pl4rd.com';
 
 type Phase = 'loading' | 'intro' | 'swipe' | 'result';
 
@@ -39,12 +42,14 @@ let seen = $state<Set<string>>(new Set());
 let current = $state<[Dye, Dye] | null>(null);
 let questionNo = $state(0);
 let result = $state<Dye[]>([]);
+let persona = $state<Persona>('balanced');
 let sharing = $state(false);
 
 let dragX = $state(0);
 let dragging = $state<'left' | 'right' | null>(null);
 let exiting = $state<'left' | 'right' | null>(null);
 let pointerStart = 0;
+let isCoarsePointer = $state(true);
 const COMMIT_PX = 90;
 const EXIT_MS = 260;
 
@@ -55,6 +60,9 @@ function dyeName(d: Dye): string {
 }
 
 onMount(async () => {
+  if (typeof matchMedia !== 'undefined') {
+    isCoarsePointer = matchMedia('(pointer: coarse)').matches;
+  }
   await loadDyes();
   dyes = $dyeStore;
   reps = selectRepresentatives(dyes);
@@ -116,6 +124,7 @@ function finish() {
     [{ test: (d) => !!d.tags?.includes('metallic'), max: 2 }],
     seen
   );
+  persona = summarizePref(wins);
   phase = 'result';
 }
 
@@ -123,7 +132,10 @@ async function share() {
   if (sharing || result.length === 0) return;
   sharing = true;
   try {
-    await shareResult(result, location.origin, $t('common.share.text'));
+    const personaName = $t(`common.result.persona.${persona}`);
+    const text = $t('common.share.text').replace('{persona}', personaName);
+    const personaText = $t('common.result.personaShare').replace('{persona}', personaName);
+    await shareResult(result, SITE_URL, text, personaText);
   } catch (e) {
     console.error(e);
   } finally {
@@ -138,6 +150,8 @@ function onKey(e: KeyboardEvent) {
 }
 
 function onPointerDown(side: 'left' | 'right', e: PointerEvent) {
+  // PC (fine pointer) は誤ドラッグ防止でクリック専用
+  if (!isCoarsePointer) return;
   dragging = side;
   pointerStart = e.clientX;
   (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -248,8 +262,15 @@ function onPointerUp() {
 
   {:else if phase === 'result'}
     <section class="space-y-8 animate-fade-in-up">
-      <header class="text-center space-y-2">
-        <h2 class="text-2xl font-bold">
+      <header class="text-center space-y-3">
+        <div class="text-xs text-muted-foreground tracking-wide uppercase">
+          {$t('common.result.personaLabel')}
+        </div>
+        <div class="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 py-2 text-lg font-bold animate-bounce-subtle">
+          <Sparkles class="size-5 text-popular" />
+          {$t('common.result.persona.' + persona)}
+        </div>
+        <h2 class="text-xl font-semibold pt-2">
           {$t('common.result.title').replace('{count}', String(RESULT_COUNT))}
         </h2>
         <p class="text-sm text-muted-foreground">
@@ -267,8 +288,8 @@ function onPointerUp() {
               class="group block overflow-hidden rounded-xl border border-border bg-card hover:bg-accent transition-colors"
             >
               <div class="aspect-[4/3]" style="background-color: {dye.hex}"></div>
-              <div class="flex items-center gap-1.5 px-3 py-2">
-                <span class="text-sm font-medium truncate">{dyeName(dye)}</span>
+              <div class="flex items-center gap-1.5 px-3 py-2.5">
+                <span class="text-base font-semibold truncate">{dyeName(dye)}</span>
                 <ExternalLink class="size-3.5 shrink-0 text-muted-foreground" />
               </div>
             </a>

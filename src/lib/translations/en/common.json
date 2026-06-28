@@ -17,10 +17,22 @@
     "title": "{count} colors for you",
     "subtitle": "Picked from {count} swipes",
     "retry": "Try again",
-    "share": "Share"
+    "share": "Share",
+    "personaLabel": "You're a",
+    "personaShare": "You're a {persona}",
+    "persona": {
+      "warm": "Cozy Warm-tone",
+      "cool": "Breezy Cool-tone",
+      "green": "Lush Green",
+      "purple": "Dreamy Purple",
+      "bright": "Sparkly Bright",
+      "dark": "Velvety Deep",
+      "pale": "Fluffy Pale",
+      "balanced": "Mellow Balance"
+    }
   },
   "share": {
-    "text": "Find your dye. #ColorantSwipe"
+    "text": "I'm a \"{persona}\"! Find your dye.\n#ColorantSwipe"
   },
   "aria": {
     "languageSwitch": "Switch language",

@@ -147,6 +147,44 @@ export function scoreDyes(
   return m;
 }
 
+// wins の重心から好み傾向を一語で要約。OKLab の彩度 / hue / L だけで決める。
+export type Persona =
+  | 'warm'
+  | 'cool'
+  | 'green'
+  | 'purple'
+  | 'bright'
+  | 'dark'
+  | 'pale'
+  | 'balanced';
+
+export function summarizePref(wins: Dye[]): Persona {
+  if (wins.length === 0) return 'balanced';
+  let l = 0;
+  let a = 0;
+  let b = 0;
+  for (const w of wins) {
+    l += w.lab[0];
+    a += w.lab[1];
+    b += w.lab[2];
+  }
+  l /= wins.length;
+  a /= wins.length;
+  b /= wins.length;
+  const chroma = Math.hypot(a, b);
+  if (chroma > 0.08) {
+    const hueDeg = ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
+    if (hueDeg < 110 || hueDeg >= 330) return 'warm'; // 赤〜橙〜黄
+    if (hueDeg < 200) return 'green';
+    if (hueDeg < 280) return 'cool';
+    return 'purple';
+  }
+  if (l > 0.78) return 'bright';
+  if (l < 0.4) return 'dark';
+  if (chroma < 0.03) return 'pale';
+  return 'balanced';
+}
+
 // 高スコア順に走査、既選色との最低距離を満たすもののみ採用。
 // 足りなければ距離制約だけ外して穴埋め (caps は最後まで尊重)。
 export type DiversifyCap = { test: (d: Dye) => boolean; max: number };

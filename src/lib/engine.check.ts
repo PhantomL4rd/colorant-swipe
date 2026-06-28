@@ -6,6 +6,7 @@ import {
   pickNextPair,
   scoreDyes,
   selectRepresentatives,
+  summarizePref,
   updatePref,
 } from './engine';
 import { rgbToHex, rgbToOklab } from './oklab';
@@ -70,5 +71,14 @@ const seen = new Set<string>(['red', 'green']);
 const [a, b] = pickNextPair(dyes, emptyPref(), seen);
 assert.ok(a.id !== b.id, 'pair must be distinct');
 assert.ok(!seen.has(a.id) && !seen.has(b.id), 'pair must skip seen ids');
+
+// summarizePref: 代表的な好みは想定通りのラベルに落ちる
+assert.equal(summarizePref([dyes[0]]), 'warm', 'red → warm');
+assert.equal(summarizePref([dyes[5]]), 'warm', 'yellow → warm');
+assert.equal(summarizePref([dyes[1]]), 'green', 'green → green');
+assert.equal(summarizePref([dyes[2]]), 'cool', 'blue → cool');
+assert.equal(summarizePref([dyes[3]]), 'bright', 'white → bright');
+assert.equal(summarizePref([dyes[4]]), 'dark', 'black → dark');
+assert.equal(summarizePref([]), 'balanced', 'empty wins → balanced');
 
 console.log('engine check: OK');

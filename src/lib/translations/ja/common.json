@@ -17,10 +17,22 @@
     "title": "あなたへのおすすめ {count} 色",
     "subtitle": "{count} 回のスワイプから選びました",
     "retry": "もう一度",
-    "share": "シェアする"
+    "share": "シェアする",
+    "personaLabel": "あなたは",
+    "personaShare": "あなたは「{persona}」",
+    "persona": {
+      "warm": "ぽかぽか暖色派",
+      "cool": "ひんやり寒色派",
+      "green": "みずみずグリーン派",
+      "purple": "うっとりパープル派",
+      "bright": "きらきらブライト派",
+      "dark": "こっくりディープ派",
+      "pale": "ゆるふわペール派",
+      "balanced": "なごみバランス派"
+    }
   },
   "share": {
-    "text": "推しカララント、見つけよう。 #カララントスワイプ"
+    "text": "わたしは「{persona}」でした！\n推しカララント、見つけよう。\n#カララントスワイプ"
   },
   "aria": {
     "languageSwitch": "言語を切り替え",
