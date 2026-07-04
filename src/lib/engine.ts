@@ -147,7 +147,8 @@ export function scoreDyes(
   return m;
 }
 
-// wins の重心から好み傾向を一語で要約。OKLab の彩度 / hue / L だけで決める。
+// 入力 Dye 群の重心から傾向を一語で要約。OKLab の彩度 / hue / L だけで決める。
+// wins を渡せば「好み」の要約、result を渡せば「診断結果」の要約になる。
 export type Persona =
   | 'warm'
   | 'cool'

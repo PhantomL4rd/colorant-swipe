@@ -170,7 +170,9 @@ function finish() {
     [{ test: (d) => !!d.tags?.includes('metallic'), max: 2 }],
     seen
   );
-  persona = summarizePref(wins);
+  // ラベルは上位 3 色の重心から出す。full result だと末尾の穴埋め色（diversify が
+  // 距離制約なしで拾う次点）に引きずられ、上位が示す傾向がラベルに出にくくなる。
+  persona = summarizePref(result.slice(0, 3));
   phase = 'result';
 }
 
