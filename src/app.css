@@ -339,6 +339,14 @@
 
 /* ===== Swipe Card ===== */
 
+/* scale をキーフレーム/トランジションで補間可能に登録。
+   transform は translate/rotate=spring 値、scale=演出 を合成し、両者を独立に動かす */
+@property --card-scale {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
 .swipe-card {
   position: relative;
   aspect-ratio: 4 / 3;
@@ -347,10 +355,17 @@
   box-shadow: 0 10px 25px -10px color-mix(in oklch, var(--foreground) 25%, transparent);
   touch-action: none;
   cursor: pointer;
-  transform: translateX(var(--drag-x, 0)) rotate(var(--drag-rot, 0));
+  transform: translateX(var(--drag-x, 0)) rotate(var(--drag-rot, 0)) scale(var(--card-scale, 1));
   transition:
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 240ms ease-out,
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms ease-out,
+    box-shadow 200ms ease-out;
+}
+/* spring 駆動中（ドラッグ / 復帰 / 確定）は transform を CSS でトランジションせず、
+   spring 値をフレーム毎にそのまま反映（二重補間によるカクつきを防ぐ） */
+.swipe-card.spring {
+  transition:
+    opacity 200ms ease-out,
     box-shadow 200ms ease-out;
 }
 .swipe-card .heart-pop {
@@ -378,22 +393,58 @@
 .swipe-card.winner .heart-pop-icon {
   animation: heart-pop-in 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
-.swipe-card:not(:disabled):hover {
-  transform: translateX(var(--drag-x, 0)) rotate(var(--drag-rot, 0)) scale(1.02);
+.swipe-card:not(.spring):not(.is-other):not(:disabled):hover {
+  --card-scale: 1.02;
 }
 .swipe-card.is-dragging {
-  transition: none;
   cursor: grabbing;
+  z-index: 5;
+  /* ドラッグ量 p に比例して拡大 + そのカード色のシャープなリング（滲みなし） */
+  --card-scale: calc(1 + 0.04 * var(--drag-p, 0));
+  box-shadow:
+    0 10px 25px -10px color-mix(in oklch, var(--foreground) 25%, transparent),
+    0 0 0 calc(3px * var(--drag-p, 0)) color-mix(in oklch, var(--glow) 78%, transparent);
+}
+/* ドラッグ中は中央ハートが p に比例して現れる */
+.swipe-card.is-dragging .heart-pop-icon {
+  opacity: var(--drag-p, 0);
+  transform: scale(calc(0.5 + 0.6 * var(--drag-p, 0)));
+}
+/* 反対側カードは p に比例して縮小 + 減衰 */
+.swipe-card.is-other {
+  --card-scale: calc(1 - 0.06 * var(--drag-p, 0));
+  opacity: calc(1 - 0.35 * var(--drag-p, 0));
+  transition:
+    transform 120ms ease-out,
+    opacity 120ms ease-out;
+}
+/* 勝者：軽く沈んで戻る snap（1→1.05→1）+ シャープな 2px リング。translate は spring が中央へ戻す */
+@keyframes winner-snap {
+  0% { --card-scale: 1; }
+  45% { --card-scale: 1.05; }
+  100% { --card-scale: 1; }
 }
 .swipe-card.winner {
-  transform: scale(1.08);
+  z-index: 5;
   box-shadow:
-    0 0 0 4px color-mix(in oklch, var(--foreground) 35%, transparent),
-    0 18px 35px -10px color-mix(in oklch, var(--foreground) 40%, transparent);
+    0 0 0 2px var(--foreground),
+    0 12px 28px -12px color-mix(in oklch, var(--foreground) 35%, transparent);
+  animation: winner-snap 340ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* 敗者：吹き飛ばさず、少し沈み込みつつ (scale 0.92) フェードアウト */
+@keyframes loser-sink {
+  from {
+    --card-scale: 1;
+    opacity: 1;
+  }
+  to {
+    --card-scale: 0.92;
+    opacity: 0;
+  }
 }
 .swipe-card.loser {
-  transform: translateX(var(--exit-x)) rotate(calc(var(--exit-x) / 12)) scale(0.85);
-  opacity: 0;
+  z-index: 1;
+  animation: loser-sink 300ms ease-out forwards;
 }
 
 /* SP: カードを画面の残り高さいっぱいに */
@@ -422,18 +473,102 @@
   animation: hint-swipe-right 1.4s ease-in-out 1.7s 1;
 }
 
-@keyframes card-in {
+/* 次ペアの入場：下から 12px + scale 0.97 を spring 風 easing で settle。
+   backwards fill で遅延中も from を保持し、終了後は base transform（spring 値）へ戻す */
+@keyframes card-enter {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.96);
+    transform: translateY(12px) scale(0.97);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
-.animate-card-in {
-  animation: card-in 0.24s ease-out;
+.swipe-card.card-enter {
+  animation: card-enter 300ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+/* 右カードは 40ms 遅らせて left→right の stagger 入場 */
+.swipe-card.card-enter:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+/* ===== VS バッジ（2枚のカードの中央） ===== */
+.vs-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 20;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 12px -4px color-mix(in oklch, var(--foreground) 30%, transparent);
+  transform: translate(-50%, -50%);
+  animation: vs-pulse 2s ease-in-out infinite;
+}
+@keyframes vs-pulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+/* ===== プログレスドット ===== */
+.progress-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 1rem;
+}
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--muted);
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 300ms ease,
+    box-shadow 300ms ease;
+}
+.dot.filled {
+  background: var(--primary);
+}
+.dot.current {
+  background: var(--primary);
+  transform: scale(1.5);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent);
+}
+
+/* ===== 結果タイル（stagger 入場 + hover） ===== */
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.tile-in {
+  animation: tile-in 0.4s ease-out both;
+}
+
+/* ===== intro 入場 ===== */
+.intro-stagger {
+  animation: fade-in-up 0.5s ease-out both;
 }
 
 /* ===== Reduced Motion Support ===== */
@@ -447,10 +582,17 @@
   .animate-heart-burst,
   .animate-pulse-slow,
   .animate-slide-in-right,
-  .animate-card-in,
   .swipe-card,
+  .swipe-card.spring,
+  .swipe-card.card-enter,
   .swipe-card.winner,
-  .swipe-card.loser {
+  .swipe-card.loser,
+  .swipe-card.is-other,
+  .vs-badge,
+  .dot,
+  .progress-dots,
+  .tile-in,
+  .intro-stagger {
     animation: none;
     transition: none;
   }

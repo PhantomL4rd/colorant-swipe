@@ -9,6 +9,7 @@ import {
   Sparkles,
 } from '@lucide/svelte';
 import { onMount } from 'svelte';
+import { Spring } from 'svelte/motion';
 import { dyeStore, loadDyes } from '$lib/dyes';
 import {
   diversify,
@@ -45,13 +46,37 @@ let result = $state<Dye[]>([]);
 let persona = $state<Persona>('balanced');
 let sharing = $state(false);
 
-let dragX = $state(0);
-let dragging = $state<'left' | 'right' | null>(null);
-let exiting = $state<'left' | 'right' | null>(null);
+// ドラッグ追従と復帰を同一の物理で連続させる（掴む/離す瞬間の補間切替を無くす）
+const DRAG_SPRING = { stiffness: 0.42, damping: 0.85 }; // 追従: 即応・低バウンド
+const RELEASE_SPRING = { stiffness: 0.16, damping: 0.62 }; // 復帰: 柔らかいスプリング
+const dragSpring = new Spring(0, DRAG_SPRING);
+
+let dragging = $state<'left' | 'right' | null>(null); // 指が触れている側
+let returnSide = $state<'left' | 'right' | null>(null); // 閾値未満で離してスプリング復帰中の側
+let exiting = $state<'left' | 'right' | null>(null); // 確定演出中の勝者側
+
 let pointerStart = 0;
-let isCoarsePointer = $state(true);
+let rawX = 0; // 生のドラッグ量（判定用、spring.current はラグがある）
+let didDrag = false;
+let lastX = 0;
+let lastT = 0;
+let velocity = 0; // px/ms（フリック判定用）
+let exitTimer: ReturnType<typeof setTimeout> | null = null;
 const COMMIT_PX = 90;
-const EXIT_MS = 260;
+const DRAG_THRESHOLD = 8;
+const FLICK_V = 0.5; // px/ms 以上なら距離不足でも確定
+const EXIT_FALLBACK_MS = 420; // animationend が来ない環境向けの安全網
+
+// スプリングのオフセット（translate/rotate）を適用する側。ドラッグ→復帰→確定を通して連続
+const offsetSide = $derived(exiting ?? dragging ?? returnSide);
+// ドラッグ/復帰の進捗 0..1（確定演出中は 0）。spring.current 基準で glow/対向カードが連続追従
+const dragP = $derived(exiting ? 0 : Math.min(Math.abs(dragSpring.current) / COMMIT_PX, 1));
+
+function prefersReduced() {
+  return (
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
 
 // sveltekit-i18n は翻訳キー未登録時に key そのものを返す。raw 英名にフォールバック。
 function dyeName(d: Dye): string {
@@ -60,9 +85,6 @@ function dyeName(d: Dye): string {
 }
 
 onMount(async () => {
-  if (typeof matchMedia !== 'undefined') {
-    isCoarsePointer = matchMedia('(pointer: coarse)').matches;
-  }
   await loadDyes();
   dyes = $dyeStore;
   reps = selectRepresentatives(dyes);
@@ -89,20 +111,35 @@ function nextQuestion() {
   seen.add(b.id);
   current = [a, b];
   questionNo += 1;
-  dragX = 0;
   dragging = null;
+  returnSide = null;
+  rawX = 0;
+  dragSpring.set(0, { instant: true });
 }
 
 function pick(side: 'left' | 'right') {
   if (!current || exiting) return;
-  exiting = side;
-  // ドラッグ中なら現在位置から終端へ滑らせる、その他はゼロから
   dragging = null;
-  setTimeout(() => commitPick(side), EXIT_MS);
+  returnSide = null;
+  exiting = side;
+  // 掴んだ位置から中心へ柔らかく戻しつつ、勝者は snap で確定演出（両者 transform のみ）
+  dragSpring.stiffness = RELEASE_SPRING.stiffness;
+  dragSpring.damping = RELEASE_SPRING.damping;
+  dragSpring.target = 0;
+  if (prefersReduced()) {
+    commitPick(side); // reduced-motion は即時切替（animationend を待たない）
+  } else {
+    // winner-snap の animationend で確定するが、発火しない環境向けに安全網も張る
+    exitTimer = setTimeout(() => commitPick(side), EXIT_FALLBACK_MS);
+  }
 }
 
 function commitPick(side: 'left' | 'right') {
-  if (!current) return;
+  if (exiting !== side || !current) return; // 二重確定ガード（animationend + 安全網）
+  if (exitTimer) {
+    clearTimeout(exitTimer);
+    exitTimer = null;
+  }
   const [a, b] = current;
   const winner = side === 'left' ? a : b;
   const loser = side === 'left' ? b : a;
@@ -110,7 +147,16 @@ function commitPick(side: 'left' | 'right') {
   wins = [...wins, winner];
   losses = [...losses, loser];
   exiting = null;
+  // 次のドラッグに備えて追従用パラメータへ戻す
+  dragSpring.stiffness = DRAG_SPRING.stiffness;
+  dragSpring.damping = DRAG_SPRING.damping;
+  dragSpring.set(0, { instant: true });
   nextQuestion();
+}
+
+// winner の snap アニメーション終了で確定（setTimeout 連鎖よりタイミングが正確）
+function onCardAnimEnd(side: 'left' | 'right', e: AnimationEvent) {
+  if (e.animationName === 'winner-snap' && exiting === side) commitPick(side);
 }
 
 function finish() {
@@ -152,23 +198,82 @@ function onKey(e: KeyboardEvent) {
   else if (e.key === 'ArrowRight') pick('right');
 }
 
+function haptic() {
+  // commit 時の触覚フィードバック（未対応環境は無視）
+  if ('vibrate' in navigator) navigator.vibrate?.(12);
+}
+
+// キーボード起点の click（detail === 0）のみ拾う。ポインタは pointerup で処理済み
+function onCardClick(side: 'left' | 'right', e: MouseEvent) {
+  if (e.detail === 0) pick(side);
+}
+
 function onPointerDown(side: 'left' | 'right', e: PointerEvent) {
-  // PC (fine pointer) は誤ドラッグ防止でクリック専用
-  if (!isCoarsePointer) return;
+  if (exiting) return;
+  // 主ボタン（左クリック / 主タッチ）以外は無視。右・中クリックで pick が発火しないように
+  if (!e.isPrimary || e.button !== 0) return;
   dragging = side;
+  returnSide = null;
+  didDrag = false;
   pointerStart = e.clientX;
+  rawX = 0;
+  velocity = 0;
+  lastX = e.clientX;
+  lastT = performance.now();
+  // 追従用パラメータへ戻し、現在位置は 0 から掴み直す
+  dragSpring.stiffness = DRAG_SPRING.stiffness;
+  dragSpring.damping = DRAG_SPRING.damping;
+  dragSpring.set(0, { instant: true });
   (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 }
 function onPointerMove(e: PointerEvent) {
   if (!dragging) return;
-  dragX = e.clientX - pointerStart;
+  rawX = e.clientX - pointerStart;
+  dragSpring.target = rawX; // spring が指を追う（わずかなラグ = 吸い付き感）
+  const now = performance.now();
+  const dt = now - lastT;
+  if (dt > 0) velocity = (e.clientX - lastX) / dt;
+  lastX = e.clientX;
+  lastT = now;
+  if (Math.abs(rawX) > DRAG_THRESHOLD) didDrag = true;
 }
 function onPointerUp() {
   if (!dragging) return;
-  // 掴んだカードをどっち方向に投げてもそのカードを選ぶ
-  if (Math.abs(dragX) > COMMIT_PX) pick(dragging);
-  dragX = 0;
+  const side = dragging;
+  if (!didDrag) {
+    // 8px 未満 = タップ扱い、その側を選ぶ
+    dragging = null;
+    haptic();
+    pick(side);
+  } else if (Math.abs(rawX) > COMMIT_PX || Math.abs(velocity) > FLICK_V) {
+    // 閾値超え、または軽いフリック（速度十分）で確定
+    dragging = null;
+    haptic();
+    pick(side);
+  } else {
+    // 閾値未満で離した = 同じ spring を復帰パラメータに切替えて連続的に戻す
+    dragging = null;
+    didDrag = false;
+    returnSide = side;
+    dragSpring.stiffness = RELEASE_SPRING.stiffness;
+    dragSpring.damping = RELEASE_SPRING.damping;
+    dragSpring.set(0).then(() => {
+      if (returnSide === side) returnSide = null;
+    });
+  }
+}
+function onPointerCancel() {
+  // ジェスチャ中断 = 選ばずにスプリングで中央へ戻す
+  if (!dragging) return;
+  const side = dragging;
   dragging = null;
+  didDrag = false;
+  returnSide = side;
+  dragSpring.stiffness = RELEASE_SPRING.stiffness;
+  dragSpring.damping = RELEASE_SPRING.damping;
+  dragSpring.set(0).then(() => {
+    if (returnSide === side) returnSide = null;
+  });
 }
 </script>
 
@@ -180,18 +285,21 @@ function onPointerUp() {
 
   {:else if phase === 'intro'}
     <section class="py-12 text-center space-y-6">
-      <div class="flex justify-center">
-        <Sparkles class="size-12 text-popular animate-pulse-slow" />
+      <div class="relative flex justify-center intro-stagger" style="animation-delay: 0ms">
+        <Sparkles class="relative size-12 text-popular animate-pulse-slow" />
       </div>
-      <h2 class="text-3xl font-bold">{$t('common.intro.tagline')}</h2>
-      <p class="text-muted-foreground leading-relaxed">
+      <h2 class="text-3xl font-bold intro-stagger" style="animation-delay: 80ms">
+        {$t('common.intro.tagline')}
+      </h2>
+      <p class="text-muted-foreground leading-relaxed intro-stagger" style="animation-delay: 160ms">
         {$t('common.intro.lead').replace('{count}', String(QUESTION_COUNT))}<br />
         {$t('common.intro.leadSuffix').replace('{count}', String(RESULT_COUNT))}
       </p>
       <button
         type="button"
         onclick={start}
-        class="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-8 py-3 text-base font-semibold hover:opacity-90 active:animate-bounce-subtle"
+        class="intro-stagger inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-8 py-3 text-base font-semibold hover:opacity-90 active:animate-bounce-subtle"
+        style="animation-delay: 240ms"
       >
         <Heart class="size-5" />
         {$t('common.intro.start')}
@@ -200,47 +308,65 @@ function onPointerUp() {
 
   {:else if phase === 'swipe' && current}
     {@const [left, right] = current}
-    <section class="space-y-6">
-      <div class="space-y-2">
-        <div class="flex justify-between text-xs text-muted-foreground">
-          <span>{questionNo} / {QUESTION_COUNT}</span>
-          <span>{$t('common.swipe.prompt')}</span>
-        </div>
-        <div class="h-1.5 bg-muted rounded-full overflow-hidden">
+    <section class="relative space-y-6">
+      <div class="relative z-10 space-y-6">
+        <div class="space-y-2">
+          <div class="flex justify-between text-xs text-muted-foreground">
+            <span>{questionNo} / {QUESTION_COUNT}</span>
+            <span>{$t('common.swipe.prompt')}</span>
+          </div>
           <div
-            class="h-full bg-primary transition-all"
-            style="width: {(questionNo / QUESTION_COUNT) * 100}%"
-          ></div>
+            class="progress-dots"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax={QUESTION_COUNT}
+            aria-valuenow={questionNo}
+            aria-label={$t('common.aria.progress')}
+          >
+            {#each Array(QUESTION_COUNT) as _, i (i)}
+              <span
+                class="dot"
+                class:filled={i < questionNo - 1}
+                class:current={i === questionNo - 1}
+              ></span>
+            {/each}
+          </div>
         </div>
-      </div>
 
-      {#key questionNo}
-        <div class="grid grid-cols-2 gap-3 sm:gap-4 animate-card-in">
-          {#each [{ side: 'left' as const, dye: left }, { side: 'right' as const, dye: right }] as item (item.side + item.dye.id)}
-            <button
-              type="button"
-              onclick={() => pick(item.side)}
-              onpointerdown={(e) => onPointerDown(item.side, e)}
-              onpointermove={onPointerMove}
-              onpointerup={onPointerUp}
-              onpointercancel={onPointerUp}
-              disabled={!!exiting}
-              class="swipe-card"
-              class:is-dragging={dragging === item.side}
-              class:winner={exiting === item.side}
-              class:loser={exiting && exiting !== item.side}
-              class:hint-swipe-left={questionNo === 1 && item.side === 'left'}
-              class:hint-swipe-right={questionNo === 1 && item.side === 'right'}
-              style="background-color: {item.dye.hex}; --drag-x: {dragging === item.side ? dragX : 0}px; --drag-rot: {dragging === item.side ? dragX / 24 : 0}deg; --exit-x: {item.side === 'left' ? '-130%' : '130%'};"
-              aria-label={item.side === 'left' ? $t('common.aria.pickLeft') : $t('common.aria.pickRight')}
-            >
-              <span class="heart-pop" aria-hidden="true">
-                <Heart class="heart-pop-icon" />
-              </span>
-            </button>
-          {/each}
+        <div class="relative" style="--drag-p: {dragP}">
+          {#key questionNo}
+            <div class="grid grid-cols-2 gap-3 sm:gap-4">
+              {#each [{ side: 'left' as const, dye: left }, { side: 'right' as const, dye: right }] as item (item.side + item.dye.id)}
+                <button
+                  type="button"
+                  onclick={(e) => onCardClick(item.side, e)}
+                  onpointerdown={(e) => onPointerDown(item.side, e)}
+                  onpointermove={onPointerMove}
+                  onpointerup={onPointerUp}
+                  onpointercancel={onPointerCancel}
+                  onanimationend={(e) => onCardAnimEnd(item.side, e)}
+                  disabled={!!exiting}
+                  class="swipe-card"
+                  class:is-dragging={dragging === item.side}
+                  class:is-other={!!offsetSide && offsetSide !== item.side && !exiting}
+                  class:spring={offsetSide === item.side}
+                  class:card-enter={questionNo > 1}
+                  class:winner={exiting === item.side}
+                  class:loser={exiting && exiting !== item.side}
+                  class:hint-swipe-left={questionNo === 1 && item.side === 'left'}
+                  class:hint-swipe-right={questionNo === 1 && item.side === 'right'}
+                  style="background-color: {item.dye.hex}; --glow: {item.dye.hex}; --drag-x: {offsetSide === item.side ? dragSpring.current : 0}px; --drag-rot: {offsetSide === item.side ? dragSpring.current / 24 : 0}deg;"
+                  aria-label={item.side === 'left' ? $t('common.aria.pickLeft') : $t('common.aria.pickRight')}
+                >
+                  <span class="heart-pop" aria-hidden="true">
+                    <Heart class="heart-pop-icon" />
+                  </span>
+                </button>
+              {/each}
+            </div>
+          {/key}
+          <span class="vs-badge" aria-hidden="true">VS</span>
         </div>
-      {/key}
 
       <div class="hidden sm:flex items-center justify-center gap-3 text-sm text-muted-foreground">
         <button
@@ -260,6 +386,7 @@ function onPointerUp() {
         >
           <ArrowRight class="size-4" />
         </button>
+      </div>
       </div>
     </section>
 
@@ -282,13 +409,13 @@ function onPointerUp() {
       </header>
 
       <ul class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {#each result as dye (dye.id)}
-          <li>
+        {#each result as dye, i (dye.id)}
+          <li class="tile-in" style="animation-delay: {i * 60}ms">
             <a
               href="{PICKER_URL}?dye={dye.id}"
               target="_blank"
               rel="noopener noreferrer"
-              class="group block overflow-hidden rounded-xl border border-border bg-card hover:bg-accent transition-colors"
+              class="group block overflow-hidden rounded-xl border border-border bg-card hover:bg-accent"
             >
               <div class="aspect-[4/3]" style="background-color: {dye.hex}"></div>
               <div class="flex items-center gap-1.5 px-3 py-2.5">

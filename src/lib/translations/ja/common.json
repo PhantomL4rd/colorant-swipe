@@ -36,6 +36,7 @@
   },
   "aria": {
     "languageSwitch": "言語を切り替え",
+    "progress": "回答の進捗",
     "pickLeft": "左の色を選ぶ",
     "pickRight": "右の色を選ぶ",
     "openMenu": "メニューを開く",
