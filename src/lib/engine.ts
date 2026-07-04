@@ -190,18 +190,12 @@ export function scoreDyes(
 
 // 入力 Dye 群の重心から傾向を一語で要約。OKLab の彩度 / hue / L だけで決める。
 // wins を渡せば「好み」の要約、result を渡せば「診断結果」の要約になる。
-export type Persona =
-  | 'warm'
-  | 'cool'
-  | 'green'
-  | 'purple'
-  | 'bright'
-  | 'dark'
-  | 'pale'
-  | 'balanced';
+export type Persona = 'warm' | 'cool' | 'dark' | 'pale' | 'dusty' | 'vivid';
 
 export function summarizePref(wins: Dye[]): Persona {
-  if (wins.length === 0) return 'balanced';
+  // wins が空になるのは呼び出し側で防ぐ想定 (result.slice(0,3) は必ず要素あり)。
+  // 万一の防御として dusty を fallback にする。
+  if (wins.length === 0) return 'dusty';
   let l = 0;
   let a = 0;
   let b = 0;
@@ -215,23 +209,25 @@ export function summarizePref(wins: Dye[]): Persona {
   b /= wins.length;
   const chroma = Math.hypot(a, b);
 
+  // 高彩度は色相を問わず「ビビッド派」に集約。Neon/Carmine/Ruby など「派手好き」の意図を拾う。
+  if (chroma > 0.18) return 'vivid';
+
   // 明淡帯 (明るくて彩度控えめ) を Pastel/Snow/Ivory 含めて "pale" に集約。
-  // 旧: chroma<0.03 かつ 0.4<L<0.78 という「中グレー限定」で pastel が bright に落ちていた。
   if (l > 0.72 && chroma < 0.14) return 'pale';
 
-  // 有色 (中〜高彩度) は色相で分類
+  // 中〜高彩度 (0.09 < chroma <= 0.18) は色相で warm/cool の 2 分割。
+  // 緑・紫は「近い側 (概ね寒色)」に集約する簡潔な二分法。
   if (chroma > 0.09) {
     const hueDeg = ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
     if (hueDeg < 110 || hueDeg >= 330) return 'warm';
-    if (hueDeg < 200) return 'green';
-    if (hueDeg < 280) return 'cool';
-    return 'purple';
+    return 'cool';
   }
 
-  // 低彩度は明度で明るい/暗い/中間に分類
-  if (l > 0.78) return 'bright';
+  // 暗い低彩度は dark
   if (l < 0.4) return 'dark';
-  return 'balanced';
+
+  // 残り (中明度の低彩度含む) は「くすみ派」に集約。balanced 廃止のためここが最終フォールバック。
+  return 'dusty';
 }
 
 // 高スコア順に走査、既選色との最低距離を満たすもののみ採用。

@@ -73,12 +73,24 @@ assert.ok(a.id !== b.id, 'pair must be distinct');
 assert.ok(!seen.has(a.id) && !seen.has(b.id), 'pair must skip seen ids');
 
 // summarizePref: 代表的な好みは想定通りのラベルに落ちる
-assert.equal(summarizePref([dyes[0]]), 'warm', 'red → warm');
-assert.equal(summarizePref([dyes[5]]), 'warm', 'yellow → warm');
-assert.equal(summarizePref([dyes[1]]), 'green', 'green → green');
-assert.equal(summarizePref([dyes[2]]), 'cool', 'blue → cool');
-assert.equal(summarizePref([dyes[3]]), 'pale', 'white → pale (境界緩和後: 明淡帯を pale に集約)');
-assert.equal(summarizePref([dyes[4]]), 'dark', 'black → dark');
-assert.equal(summarizePref([]), 'balanced', 'empty wins → balanced');
+assert.equal(summarizePref([dyes[0]]), 'vivid', 'red (原色) → vivid');
+assert.equal(summarizePref([dyes[5]]), 'vivid', 'yellow (原色) → vivid');
+assert.equal(summarizePref([dyes[1]]), 'vivid', 'green (原色) → vivid');
+assert.equal(summarizePref([dyes[2]]), 'vivid', 'blue (原色) → vivid');
+assert.equal(summarizePref([dyes[3]]), 'pale', 'white (chroma≈0, L>0.72) → pale');
+assert.equal(summarizePref([dyes[4]]), 'dark', 'black (chroma≈0, L<0.4) → dark');
+assert.equal(summarizePref([]), 'dusty', 'empty wins → dusty (fallback)');
+
+// dusty: 中明度 & 中低彩度 (Plum Purple, Ochu Green など「くすみ系」を拾う)
+const dustyProbe: Dye = {
+  id: 'probe-dusty',
+  name: 'probe-dusty',
+  category: 'x',
+  tags: [],
+  rgb: { r: 0, g: 0, b: 0 },
+  hex: '#000000',
+  lab: [0.5, 0.05, -0.03], // L=0.5, chroma≈0.058
+};
+assert.equal(summarizePref([dustyProbe]), 'dusty', 'mid-L low-chroma → dusty');
 
 console.log('engine check: OK');

@@ -23,12 +23,10 @@
     "persona": {
       "warm": "Cozy Warm-tone",
       "cool": "Breezy Cool-tone",
-      "green": "Lush Green",
-      "purple": "Dreamy Purple",
-      "bright": "Sparkly Bright",
       "dark": "Velvety Deep",
       "pale": "Fluffy Pale",
-      "balanced": "Mellow Balance"
+      "dusty": "Chic Dusty",
+      "vivid": "Bold Vivid"
     }
   },
   "share": {

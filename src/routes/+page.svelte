@@ -43,7 +43,7 @@ let seen = $state<Set<string>>(new Set());
 let current = $state<[Dye, Dye] | null>(null);
 let questionNo = $state(0);
 let result = $state<Dye[]>([]);
-let persona = $state<Persona>('balanced');
+let persona = $state<Persona>('dusty');
 let sharing = $state(false);
 
 // ドラッグ追従と復帰を同一の物理で連続させる（掴む/離す瞬間の補間切替を無くす）
