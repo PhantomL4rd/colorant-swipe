@@ -5,41 +5,56 @@ import type { Dye } from './types';
 export const QUESTION_COUNT = 5;
 export const REP_COUNT = 30;
 export const RESULT_COUNT = 6;
-const SIGMA = 0.1;
+const SIGMA = 0.2; // 0.15 でも wins 直近への集中が強く「最初に選んだ色に引っ張られすぎる」問題が残ったので更に緩和
 const DIVERSIFY_MIN_DIST = 0.06;
-const PREF_BONUS = 0.8; // 短セッションでは方向情報を重視
-const EXPLORE_PMAG = 0.25; // 探索フェーズを短く
+const PREF_BONUS = 0.8;
+const EXPLORE_PMAG = 1.0; // updatePref が単位ベクトル加算になったので、|pref| は「同方向の一致問数」に対応。Q1 直後 pmag=1 で境界探索へ
 
 // ponytail: 代表色は farthest-point sampling で実行時計算。
-// 代表色フラグを DB に持たせる案 (spec) は不要、選色ロジック1本で済む。
+// シードは L の中央値付近＋そこそこの彩度を持つ色を選ぶ。
+// 「高彩度色から開始」だと farthest-point が OKLab 極点 (暗いメタリック / 蛍光) を
+// 貪欲に集めて代表色プールが端点まみれになり、選択肢の質が下がる。
 export function selectRepresentatives(dyes: Dye[], k = REP_COUNT): Dye[] {
   if (dyes.length <= k) return [...dyes];
-  // 高彩度色から開始（白黒だけでスタートさせない）
-  let seed = dyes[0];
-  let seedChroma = -1;
-  for (const d of dyes) {
+
+  // 極端暗色 (L < 0.20) は代表色プールから除外。Q1 の距離最大ペアが
+  // 「白 vs Metallic Dark Blue」のような極端対比を組みやすく、
+  // ゆるふわ派の体験を損ねる。結果 (diversify) には allDyes から選ばれ得る。
+  const filtered = dyes.filter((d) => d.lab[0] >= 0.2);
+  const pool = filtered.length >= k ? filtered : dyes;
+
+  const sortedByL = [...pool].sort((a, b) => a.lab[0] - b.lab[0]);
+  const medianL = sortedByL[Math.floor(sortedByL.length / 2)].lab[0];
+
+  let seed = pool[0];
+  let seedScore = -Infinity;
+  for (const d of pool) {
+    const distL = Math.abs(d.lab[0] - medianL);
     const c = Math.hypot(d.lab[1], d.lab[2]);
-    if (c > seedChroma) {
-      seedChroma = c;
+    // L 中央値に近いほど＋、彩度もある程度欲しい（白黒スタート回避）
+    const score = -distL * 2 + c;
+    if (score > seedScore) {
+      seedScore = score;
       seed = d;
     }
   }
+
   const picked: Dye[] = [seed];
-  const minDist = dyes.map((d) => dist(d.lab, seed.lab));
+  const minDist = pool.map((d) => dist(d.lab, seed.lab));
   while (picked.length < k) {
     let maxIdx = -1;
     let maxD = -1;
-    for (let i = 0; i < dyes.length; i++) {
+    for (let i = 0; i < pool.length; i++) {
       if (minDist[i] > maxD) {
         maxD = minDist[i];
         maxIdx = i;
       }
     }
     if (maxIdx < 0) break;
-    const next = dyes[maxIdx];
+    const next = pool[maxIdx];
     picked.push(next);
-    for (let i = 0; i < dyes.length; i++) {
-      const d = dist(dyes[i].lab, next.lab);
+    for (let i = 0; i < pool.length; i++) {
+      const d = dist(pool[i].lab, next.lab);
       if (d < minDist[i]) minDist[i] = d;
     }
   }
@@ -50,58 +65,86 @@ export type Pref = [number, number, number];
 export const emptyPref = (): Pref => [0, 0, 0];
 
 export function updatePref(pref: Pref, winner: Dye, loser: Dye): Pref {
-  return [
-    pref[0] + (winner.lab[0] - loser.lab[0]),
-    pref[1] + (winner.lab[1] - loser.lab[1]),
-    pref[2] + (winner.lab[2] - loser.lab[2]),
-  ];
+  const dx = winner.lab[0] - loser.lab[0];
+  const dy = winner.lab[1] - loser.lab[1];
+  const dz = winner.lab[2] - loser.lab[2];
+  const mag = Math.hypot(dx, dy, dz);
+  if (mag < 1e-6) return pref;
+  // 単位ベクトルとして加算。差ベクトルの大きさで重みが変わらないので、序盤の大差ペアと
+  // 境界探索の僅差ペアが等価な情報量として蓄積される。pmag は「同方向の一致回数」に対応。
+  return [pref[0] + dx / mag, pref[1] + dy / mag, pref[2] + dz / mag];
 }
 
-// ponytail: entropy 最大化はランダムサンプリングで近似。
+// ponytail: 全ペア列挙してスコア順に並べ、上位 K=4 からランダムに 1 個引く。
+// 完全決定論だと同じ pref 状態で毎回同じペアが出て UX が退屈になるので、
+// 上位内 (=質は保証) で変化を持たせる。K=4 は「上位品質を落とさない上限」の経験値。
 // 序盤 (pref が弱い) は探索: 距離最大のペア。
 // 中盤以降は搾取: 現在の好み境界に最も近い (=判別困難な) ペア。
+const PAIR_TOP_K = 6;
+
 export function pickNextPair(rep: Dye[], pref: Pref, seenIds: Set<string>): [Dye, Dye] {
   const pool = rep.filter((d) => !seenIds.has(d.id));
   if (pool.length < 2) {
-    // 代表色を使い切ったら全 rep から再サンプリング (境界探索を続行)
     const fallback = rep;
     return [fallback[0], fallback[fallback.length - 1]];
   }
   const pmag = Math.hypot(pref[0], pref[1], pref[2]);
   const explore = pmag < EXPLORE_PMAG;
-  let best: [Dye, Dye] | null = null;
-  let bestScore = explore ? -Infinity : Infinity;
-  const target = Math.min(80, (pool.length * (pool.length - 1)) / 2);
-  for (let i = 0; i < target; i++) {
-    const a = pool[Math.floor(Math.random() * pool.length)];
-    const b = pool[Math.floor(Math.random() * pool.length)];
-    if (a.id === b.id) continue;
-    const diff: [number, number, number] = [
-      a.lab[0] - b.lab[0],
-      a.lab[1] - b.lab[1],
-      a.lab[2] - b.lab[2],
-    ];
-    const sep = Math.hypot(diff[0], diff[1], diff[2]);
-    if (sep < 0.08) continue;
-    if (explore) {
-      if (sep > bestScore) {
-        bestScore = sep;
-        best = [a, b];
+  // 全ペアを (pair, score) で列挙。score は「大きいほど好ましい」に符号を統一する。
+  const candidates: Array<{ pair: [Dye, Dye]; score: number }> = [];
+  for (let i = 0; i < pool.length; i++) {
+    for (let j = i + 1; j < pool.length; j++) {
+      const a = pool[i];
+      const b = pool[j];
+      const diff: [number, number, number] = [
+        a.lab[0] - b.lab[0],
+        a.lab[1] - b.lab[1],
+        a.lab[2] - b.lab[2],
+      ];
+      const sep = Math.hypot(diff[0], diff[1], diff[2]);
+      if (sep < 0.08) continue;
+      let score: number;
+      if (explore) {
+        // 距離最大が好ましいが、両方が高彩度な「派手 vs 派手」ペア（例: Neon Yellow vs Metallic Dark Blue）
+        // が Q1 の上位 K を独占して「毎回同じ黄色と黒」体験になっていたので、彩度平均で軽く減点する。
+        // これで「白/淡色 vs 暗色」のような落ち着いた極端対比が上位に浮上する。
+        const avgC = (Math.hypot(a.lab[1], a.lab[2]) + Math.hypot(b.lab[1], b.lab[2])) / 2;
+        score = sep * (1 - Math.min(0.5, avgC));
+      } else {
+        // 判別困難 (境界に近い) ほど好ましい。|dot|/sep/pmag が小さいほど良いので符号反転。
+        const dot = pref[0] * diff[0] + pref[1] * diff[1] + pref[2] * diff[2];
+        score = -Math.abs(dot) / (sep * pmag);
       }
-    } else {
-      const dot = pref[0] * diff[0] + pref[1] * diff[1] + pref[2] * diff[2];
-      const score = Math.abs(dot) / (sep * pmag); // 0 に近いほど判別困難
-      if (score < bestScore) {
-        bestScore = score;
-        best = [a, b];
-      }
+      candidates.push({ pair: [a, b], score });
     }
   }
-  return best ?? [pool[0], pool[1]];
+  if (candidates.length === 0) return [pool[0], pool[1]];
+  candidates.sort((x, y) => y.score - x.score);
+
+  // 上位 K 内で「1 色が最大 PER_COLOR_CAP 回まで」に制限。
+  // 現状 rep で最明色 (例: Vanilla Yellow) が distance-max ペアの片方として
+  // 上位 15 のうち過半に登場し、K=6 選出時に「毎回同じ色が選択肢に出る」
+  // 単調さの原因になっていた。
+  const PER_COLOR_CAP = 2;
+  const perColor = new Map<string, number>();
+  const topK: typeof candidates = [];
+  for (const c of candidates) {
+    if (topK.length >= PAIR_TOP_K) break;
+    const [a, b] = c.pair;
+    if ((perColor.get(a.id) ?? 0) >= PER_COLOR_CAP) continue;
+    if ((perColor.get(b.id) ?? 0) >= PER_COLOR_CAP) continue;
+    topK.push(c);
+    perColor.set(a.id, (perColor.get(a.id) ?? 0) + 1);
+    perColor.set(b.id, (perColor.get(b.id) ?? 0) + 1);
+  }
+  const pool2 = topK.length > 0 ? topK : candidates.slice(0, PAIR_TOP_K);
+  const idx = Math.floor(Math.random() * pool2.length);
+  return pool2[idx].pair;
 }
 
 // ガウス重み (局所一致) + Pref ベクトルとの内積 (方向一致) を合成。
 // ガウスだけだと wins から少し離れた色が拾えず、Pref だけだと「明るい何か」になりやすい。
+// pref 投影の基準点は wins の重心 (=「好きなものの中心」)。losses は減点ガウスで別途反映する。
 export function scoreDyes(
   allDyes: Dye[],
   wins: Dye[],
@@ -112,20 +155,18 @@ export function scoreDyes(
   const s2 = sigma * sigma;
   const pmag = Math.hypot(pref[0], pref[1], pref[2]) || 1;
   const pn: Pref = [pref[0] / pmag, pref[1] / pmag, pref[2] / pmag];
-  // wins の重心を Pref 方向投影の基準点にする
   let cx = 0;
   let cy = 0;
   let cz = 0;
-  const all = [...wins, ...losses];
-  if (all.length > 0) {
-    for (const d of all) {
-      cx += d.lab[0];
-      cy += d.lab[1];
-      cz += d.lab[2];
+  if (wins.length > 0) {
+    for (const w of wins) {
+      cx += w.lab[0];
+      cy += w.lab[1];
+      cz += w.lab[2];
     }
-    cx /= all.length;
-    cy /= all.length;
-    cz /= all.length;
+    cx /= wins.length;
+    cy /= wins.length;
+    cz /= wins.length;
   }
   const m = new Map<string, number>();
   for (const d of allDyes) {
@@ -173,21 +214,29 @@ export function summarizePref(wins: Dye[]): Persona {
   a /= wins.length;
   b /= wins.length;
   const chroma = Math.hypot(a, b);
-  if (chroma > 0.08) {
+
+  // 明淡帯 (明るくて彩度控えめ) を Pastel/Snow/Ivory 含めて "pale" に集約。
+  // 旧: chroma<0.03 かつ 0.4<L<0.78 という「中グレー限定」で pastel が bright に落ちていた。
+  if (l > 0.72 && chroma < 0.14) return 'pale';
+
+  // 有色 (中〜高彩度) は色相で分類
+  if (chroma > 0.09) {
     const hueDeg = ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
-    if (hueDeg < 110 || hueDeg >= 330) return 'warm'; // 赤〜橙〜黄
+    if (hueDeg < 110 || hueDeg >= 330) return 'warm';
     if (hueDeg < 200) return 'green';
     if (hueDeg < 280) return 'cool';
     return 'purple';
   }
+
+  // 低彩度は明度で明るい/暗い/中間に分類
   if (l > 0.78) return 'bright';
   if (l < 0.4) return 'dark';
-  if (chroma < 0.03) return 'pale';
   return 'balanced';
 }
 
 // 高スコア順に走査、既選色との最低距離を満たすもののみ採用。
-// 足りなければ距離制約だけ外して穴埋め (caps は最後まで尊重)。
+// 足りなければ minDist を段階的に緩めて再試行する。旧実装は「距離制約無視」の
+// フォールバックで派閥外の色 (ペール派なのに Marsh Green など) が末尾に混じっていた。
 export type DiversifyCap = { test: (d: Dye) => boolean; max: number };
 
 export function diversify(
@@ -201,27 +250,27 @@ export function diversify(
   const sorted = [...allDyes]
     .filter((d) => !excludeIds.has(d.id))
     .sort((a, b) => (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0));
-  const picked: Dye[] = [];
-  const counts = caps.map(() => 0);
-  const exceedsCap = (d: Dye) => caps.some((c, i) => c.test(d) && counts[i] >= c.max);
-  const accept = (d: Dye) => {
-    picked.push(d);
-    caps.forEach((c, i) => {
-      if (c.test(d)) counts[i] += 1;
-    });
-  };
-  for (const d of sorted) {
-    if (exceedsCap(d)) continue;
-    if (picked.every((p) => dist(p.lab, d.lab) >= minDist)) {
-      accept(d);
-      if (picked.length === k) return picked;
+
+  const tryFill = (md: number): Dye[] => {
+    const picked: Dye[] = [];
+    const counts = caps.map(() => 0);
+    for (const d of sorted) {
+      if (caps.some((c, i) => c.test(d) && counts[i] >= c.max)) continue;
+      if (picked.every((p) => dist(p.lab, d.lab) >= md)) {
+        picked.push(d);
+        caps.forEach((c, i) => {
+          if (c.test(d)) counts[i] += 1;
+        });
+        if (picked.length === k) return picked;
+      }
     }
+    return picked;
+  };
+
+  for (const factor of [1.0, 0.7, 0.4]) {
+    const attempt = tryFill(minDist * factor);
+    if (attempt.length === k) return attempt;
   }
-  for (const d of sorted) {
-    if (picked.includes(d)) continue;
-    if (exceedsCap(d)) continue;
-    accept(d);
-    if (picked.length === k) break;
-  }
-  return picked;
+  // ハード最小 0.02 を残して穴埋め (真の重複は依然弾く)
+  return tryFill(0.02);
 }

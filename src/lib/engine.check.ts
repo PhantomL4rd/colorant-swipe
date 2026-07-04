@@ -77,7 +77,7 @@ assert.equal(summarizePref([dyes[0]]), 'warm', 'red → warm');
 assert.equal(summarizePref([dyes[5]]), 'warm', 'yellow → warm');
 assert.equal(summarizePref([dyes[1]]), 'green', 'green → green');
 assert.equal(summarizePref([dyes[2]]), 'cool', 'blue → cool');
-assert.equal(summarizePref([dyes[3]]), 'bright', 'white → bright');
+assert.equal(summarizePref([dyes[3]]), 'pale', 'white → pale (境界緩和後: 明淡帯を pale に集約)');
 assert.equal(summarizePref([dyes[4]]), 'dark', 'black → dark');
 assert.equal(summarizePref([]), 'balanced', 'empty wins → balanced');
 
