@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://colorant-swipe.pl4rd.com/sitemap.xml
