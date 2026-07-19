@@ -15,7 +15,7 @@
     "test:engine": "tsx src/lib/engine.check.ts"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.2.4",
+    "@biomejs/biome": "^2.5.4",
     "@lucide/svelte": "^0.561.0",
     "@sveltejs/adapter-static": "^3.0.9",
     "@sveltejs/kit": "^2.60.1",

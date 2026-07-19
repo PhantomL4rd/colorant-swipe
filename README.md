@@ -20,9 +20,9 @@ AI は使わず、OKLab 色空間の数学のみ。
 ## 開発
 
 ```bash
-npm install
-npm run dev          # dev サーバー
-npm run check        # 型チェック
-npm run test:engine  # エンジン自己検証
-npm run build        # 静的ビルド
+bun install
+bun run dev          # dev サーバー
+bun run check        # 型チェック
+bun run test:engine  # エンジン自己検証
+bun run build        # 静的ビルド
 ```
