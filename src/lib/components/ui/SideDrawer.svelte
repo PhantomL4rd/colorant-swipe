@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Info, LayoutGrid, Menu, SwatchBook, TrendingUp, X } from '@lucide/svelte';
+import { Home, Info, Menu, VenetianMask, X } from '@lucide/svelte';
 import { resolve } from '$app/paths';
 import { t } from '$lib/translations';
 
@@ -22,7 +22,7 @@ function onKey(e: KeyboardEvent) {
   type="button"
   onclick={open}
   aria-label={$t('common.aria.openMenu')}
-  class="inline-flex items-center justify-center size-9 rounded-md hover:bg-primary-foreground/10 transition-colors"
+  class="inline-flex items-center justify-center size-9 rounded-md hover:bg-accent transition-colors"
 >
   <Menu class="size-5" />
 </button>
@@ -69,36 +69,25 @@ function onKey(e: KeyboardEvent) {
     <p class="px-3 py-2 text-xs text-muted-foreground">{$t('common.nav.links')}</p>
 
     <a
-      href="https://colorant-picker.pl4rd.com/"
+      href="https://pl4rd.com/"
       target="_blank"
       rel="noopener noreferrer"
       onclick={close}
       class="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent transition-colors"
     >
-      <SwatchBook class="size-5" />
-      {$t('common.externalLinks.colorantPicker')}
+      <Home class="size-5" />
+      {$t('common.externalLinks.home')}
     </a>
 
     <a
-      href="https://mirapri-insight.pl4rd.com/"
+      href="https://pl4rd.com/privacy"
       target="_blank"
       rel="noopener noreferrer"
       onclick={close}
       class="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent transition-colors"
     >
-      <TrendingUp class="size-5" />
-      {$t('common.externalLinks.mirapriInsight')}
-    </a>
-
-    <a
-      href="https://4seasons.pl4rd.com/"
-      target="_blank"
-      rel="noopener noreferrer"
-      onclick={close}
-      class="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent transition-colors"
-    >
-      <LayoutGrid class="size-5" />
-      {$t('common.externalLinks.fourSeasons')}
+      <VenetianMask class="size-5" />
+      {$t('common.externalLinks.privacy')}
     </a>
   </nav>
 </div>
