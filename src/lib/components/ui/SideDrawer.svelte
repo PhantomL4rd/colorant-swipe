@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Home, Info, Menu, VenetianMask, X } from '@lucide/svelte';
+import { Home, Info, Menu, MessageCircle, VenetianMask, X } from '@lucide/svelte';
 import { resolve } from '$app/paths';
 import { t } from '$lib/translations';
 
@@ -64,6 +64,17 @@ function onKey(e: KeyboardEvent) {
     >
       <Info class="size-5" />
       {$t('common.nav.about')}
+    </a>
+
+    <a
+      href="https://contact.pl4rd.com/?service=colorant-swipe"
+      target="_blank"
+      rel="noopener noreferrer"
+      onclick={close}
+      class="flex items-center gap-3 rounded-md px-3 py-3 text-sm hover:bg-accent transition-colors"
+    >
+      <MessageCircle class="size-5" />
+      {$t('common.externalLinks.contact')}
     </a>
 
     <p class="px-3 py-2 text-xs text-muted-foreground">{$t('common.nav.links')}</p>
